@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HueCtl</title>
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <button
+      id="toggle-panel"
+      class="control-toggle"
+      aria-expanded="false"
+      aria-controls="temp-panel"
+      aria-label="Toggle temperature slider"
+    >
+      <svg class="toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h10M4 12h16M4 17h12" />
+        <circle cx="16" cy="7" r="2" />
+        <circle cx="10" cy="17" r="2" />
+        <circle cx="14" cy="12" r="2" />
+      </svg>
+    </button>
+  </header>
+
+  <section id="temp-panel" class="temp-panel" aria-hidden="true">
+    <div class="panel-inner">
+      <label for="temp-slider" class="panel-label">Color Temperature</label>
+      <div class="slider-shell">
+        <input id="temp-slider" type="range" min="1500" max="9000" step="50" value="4500" />
+      </div>
+      <div class="slider-scale" aria-hidden="true">
+        <span>1500K Warm</span>
+        <span>9000K Cool</span>
+      </div>
+      <output id="temp-panel-value" class="panel-value" for="temp-slider">Current light temperature: 4500K</output>
+    </div>
+  </section>
+
+  <main class="hero">
+    <h1>HueCtl</h1>
+    <p>
+      Illuminate your Environment with Customizable Color Temperature.
+    </p>
+  </main>
+
+  <p id="temp-value" class="temp-status" aria-live="polite">Current light temperature: 4500K</p>
+
+  <script src="script.js"></script>
+</body>
+</html>
