@@ -1,56 +1,145 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-tone="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>HueCtl</title>
-  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+  <meta name="description" content="Turn your screen into an adjustable light: color temperature, dimmer, candle and breathe effects, and a sunset sleep timer." />
+  <meta name="theme-color" content="#ffd2a1" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="HueCtl" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="modulepreload" href="js/color.js" />
+  <link rel="modulepreload" href="js/store.js" />
+  <link rel="modulepreload" href="js/panel.js" />
+  <script>
+    // Paint the last light before any module loads, so there is no flash of the default color.
+    try {
+      var paint = JSON.parse(localStorage.getItem("huectl:v2")).paint;
+      document.documentElement.style.setProperty("--light", paint.color);
+      document.documentElement.dataset.tone = paint.tone;
+      document.querySelector('meta[name="theme-color"]').content = paint.hex;
+    } catch (error) {}
+  </script>
+  <script type="module" src="js/main.js"></script>
 </head>
 <body>
+  <div id="surface" class="surface" aria-hidden="true"></div>
+
   <header class="topbar">
     <button
       id="toggle-panel"
-      class="control-toggle"
+      class="toggle"
+      type="button"
       aria-expanded="false"
-      aria-controls="temp-panel"
-      aria-label="Toggle temperature slider"
+      aria-controls="panel"
+      aria-label="Light controls"
+      title="Controls (Space)"
     >
-      <svg class="toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <svg class="toggle-ring" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="22" stroke-dasharray="138.23" stroke-dashoffset="0" />
+      </svg>
+      <svg class="icon icon-open" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4 7h10M4 12h16M4 17h12" />
         <circle cx="16" cy="7" r="2" />
-        <circle cx="10" cy="17" r="2" />
         <circle cx="14" cy="12" r="2" />
+        <circle cx="10" cy="17" r="2" />
+      </svg>
+      <svg class="icon icon-close" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" />
       </svg>
     </button>
   </header>
 
-  <section id="temp-panel" class="temp-panel" aria-hidden="true">
+  <section id="panel" class="panel" aria-label="Light controls" inert>
     <div class="panel-inner">
-      <label for="temp-slider" class="panel-label">Color Temperature</label>
-      <div class="slider-shell">
-        <input id="temp-slider" type="range" min="1500" max="9000" step="50" value="4500" />
+      <div class="readout">
+        <div>
+          <p class="readout-value"><span id="kelvin-value">4500</span><small>K</small></p>
+          <p id="kelvin-name" class="readout-name">Daylight</p>
+        </div>
+        <p class="readout-side">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+          </svg>
+          <span id="brightness-value">100%</span>
+        </p>
       </div>
-      <div class="slider-scale" aria-hidden="true">
-        <span>1500K Warm</span>
-        <span>9000K Cool</span>
+
+      <div class="field">
+        <label for="kelvin" class="label">Temperature</label>
+        <input id="kelvin" class="range range-kelvin" type="range" min="1500" max="9000" step="50" value="4500" />
+        <div class="scale" aria-hidden="true"><span>1500K warm</span><span>cool 9000K</span></div>
       </div>
-      <output id="temp-panel-value" class="panel-value" for="temp-slider">Current light temperature: 4500K</output>
+
+      <div id="presets" class="chips" role="group" aria-label="Presets"></div>
+
+      <div class="field">
+        <label for="brightness" class="label">Brightness</label>
+        <input id="brightness" class="range range-brightness" type="range" min="5" max="100" step="1" value="100" />
+      </div>
+
+      <fieldset class="segmented">
+        <legend class="label">Effect</legend>
+        <div class="segments">
+          <label><input type="radio" name="effect" value="none" checked /><span>Steady</span></label>
+          <label><input type="radio" name="effect" value="candle" /><span>Candle</span></label>
+          <label><input type="radio" name="effect" value="breathe" /><span>Breathe</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="segmented">
+        <legend class="label">Sunset timer</legend>
+        <div class="segments">
+          <label><input type="radio" name="timer" value="0" checked /><span>Off</span></label>
+          <label><input type="radio" name="timer" value="15" /><span>15 min</span></label>
+          <label><input type="radio" name="timer" value="30" /><span>30 min</span></label>
+          <label><input type="radio" name="timer" value="60" /><span>60 min</span></label>
+        </div>
+        <p id="timer-status" class="timer-status" role="status" hidden></p>
+      </fieldset>
+
+      <div class="actions">
+        <button id="awake" class="action" type="button" aria-pressed="true">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" />
+            <circle cx="12" cy="12" r="2.75" />
+          </svg>
+          Keep awake
+        </button>
+        <button id="fullscreen" class="action" type="button" aria-pressed="false" title="Fullscreen (F or double-tap)">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+          </svg>
+          Fullscreen
+        </button>
+      </div>
+
+      <footer class="panel-footer">
+        <button id="help" class="link" type="button">How it works</button>
+        <button id="install" class="link" type="button" hidden>Install app</button>
+        <span class="shortcuts">← → warmth · ↑ ↓ brightness · 1–7 presets · E effect</span>
+      </footer>
     </div>
   </section>
 
-  <main class="hero">
-    <h1>HueCtl</h1>
-    <p>
-      Illuminate your Environment with Customizable Color Temperature.
-    </p>
-  </main>
+  <div id="hint" class="hint" hidden>
+    <p class="hint-title">Your screen is a light now.</p>
+    <ul class="hint-list">
+      <li><span class="hint-key" aria-hidden="true">↔</span>Swipe sideways for warmth</li>
+      <li><span class="hint-key" aria-hidden="true">↕</span>Swipe up or down for brightness</li>
+      <li><span class="hint-key" aria-hidden="true">●</span>Tap for controls</li>
+    </ul>
+    <p class="hint-tip">Turn your device brightness all the way up for the most light.</p>
+  </div>
 
-  <p id="temp-value" class="temp-status" aria-live="polite">Current light temperature: 4500K</p>
-
-  <script src="script.js"></script>
+  <p id="hud" class="hud" role="status" aria-live="polite"></p>
 </body>
 </html>
