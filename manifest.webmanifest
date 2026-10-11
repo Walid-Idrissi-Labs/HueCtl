@@ -1,15 +1,15 @@
 {
   "name": "HueCtl",
   "short_name": "HueCtl",
-  "description": "Turn your screen into an adjustable light: color temperature, dimmer, candle and breathe effects, and a sunset sleep timer.",
+  "description": "Turn any screen into a softbox, run from a control panel of knobs and keys: color temperature, tint, hue, saturation and a dimmer.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "display_override": ["fullscreen", "standalone"],
   "orientation": "any",
-  "background_color": "#ffd2a1",
-  "theme_color": "#ffd2a1",
+  "background_color": "#ffede2",
+  "theme_color": "#ffede2",
   "categories": ["utilities", "lifestyle"],
   "icons": [
     { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml" },
@@ -20,7 +20,7 @@
   "shortcuts": [
     { "name": "Reading light", "short_name": "Reading", "description": "2700K at 70%", "url": "./?k=2700&b=70" },
     { "name": "Candle", "short_name": "Candle", "description": "1900K candle flicker", "url": "./?k=1900&b=60&fx=candle" },
-    { "name": "Daylight", "short_name": "Daylight", "description": "5500K at full brightness", "url": "./?k=5500&b=100" },
+    { "name": "Daylight", "short_name": "Daylight", "description": "5600K at full brightness", "url": "./?k=5600&b=100" },
     { "name": "Fall asleep", "short_name": "Sleep", "description": "Warm light that fades out over 30 minutes", "url": "./?k=2200&b=50&timer=30" }
   ]
 }

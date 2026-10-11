@@ -1,14 +1,4 @@
-import {
-  KELVIN_MAX,
-  KELVIN_MIN,
-  PRESETS,
-  kelvinGradient,
-  kelvinToRgb,
-  lightColor,
-  rgbCss,
-  rgbHex,
-  toneFor
-} from "./color.js";
+import { KELVIN_MAX, KELVIN_MIN, PRESETS, lightColor, rgbCss, rgbHex } from "./color.js";
 import * as device from "./device.js";
 import { modulate } from "./effects.js";
 import { attachGestures } from "./gestures.js";
@@ -16,7 +6,6 @@ import { tween } from "./motion.js";
 import { createPanel } from "./panel.js";
 import {
   EFFECTS,
-  clampBrightness,
   clampKelvin,
   createPersister,
   createStore,
@@ -28,17 +17,14 @@ import {
 import { createTimer } from "./timer.js";
 
 const IDLE_MS = 4000;
-const HUD_MS = 1200;
 const HINT_MS = 8000;
 const META_INTERVAL_MS = 200;
-const RING_LENGTH = 2 * Math.PI * 22;
 const EFFECT_LABELS = { none: "Steady", candle: "Candle", breathe: "Breathe" };
 
 const root = document.documentElement;
 const themeMeta = document.querySelector('meta[name="theme-color"]');
 const surface = document.getElementById("surface");
 const toggle = document.getElementById("toggle-panel");
-const ring = toggle.querySelector(".toggle-ring circle");
 const hud = document.getElementById("hud");
 const hint = document.getElementById("hint");
 
@@ -51,8 +37,6 @@ const timer = createTimer(onTimerChange);
 
 let frameId = 0;
 let lastPaint = "";
-let lastFull = "";
-let lastTone = "";
 let lastMeta = "";
 let lastMetaAt = 0;
 
@@ -64,28 +48,17 @@ function render(now) {
   frameId = 0;
   const state = store.get();
   const base = timer.apply(state.kelvin, state.brightness / 100);
-  const animating =
-    state.effect !== "none" && !timer.done && document.visibilityState === "visible";
+  const dark = timer.done || state.standby;
+  const animating = state.effect !== "none" && !dark && document.visibilityState === "visible";
   const { gain, kelvinShift } = modulate(animating ? state.effect : "none", now);
-  const rgb = timer.done ? [0, 0, 0] : lightColor(base.kelvin + kelvinShift, base.level * gain);
+  const rgb = dark
+    ? [0, 0, 0]
+    : lightColor({ ...state, kelvin: base.kelvin + kelvinShift }, base.level * gain);
 
   const paint = rgbCss(rgb);
   if (paint !== lastPaint) {
     root.style.setProperty("--light", paint);
     lastPaint = paint;
-  }
-
-  const full = rgbCss(kelvinToRgb(state.kelvin).map(Math.round));
-  if (full !== lastFull) {
-    root.style.setProperty("--light-full", full);
-    lastFull = full;
-  }
-
-  // Tone follows the light without effects, so the UI never flickers with them.
-  const tone = toneFor(timer.done ? rgb : lightColor(base.kelvin, base.level));
-  if (tone !== lastTone) {
-    root.dataset.tone = tone;
-    lastTone = tone;
   }
 
   // Browser chrome repaints are costly; throttle them while an effect runs.
@@ -100,8 +73,8 @@ function render(now) {
 }
 
 function savePaint(state) {
-  const rgb = lightColor(state.kelvin, state.brightness / 100);
-  persist(state, { color: rgbCss(rgb), hex: rgbHex(rgb), tone: toneFor(rgb) });
+  const rgb = lightColor(state, state.brightness / 100);
+  persist(state, { color: rgbCss(rgb), hex: rgbHex(rgb) });
 }
 
 // State changes ---------------------------------------------------------------
@@ -118,19 +91,36 @@ function set(key, value) {
   store.set({ [key]: value });
 }
 
-function animateTo(key, target) {
-  cancelTween(key);
-  const from = store.get()[key];
-  const to = key === "kelvin" ? clampKelvin(target) : clampBrightness(target);
+// Glides the temperature to a new value instead of jumping there.
+function glideTo(kelvin) {
+  cancelTween("kelvin");
+  const from = store.get().kelvin;
+  const to = clampKelvin(kelvin);
   if (from === to) return;
-  const span = key === "kelvin" ? KELVIN_MAX - KELVIN_MIN : 100;
-  tweens[key] = tween(from, to, {
-    duration: 180 + (440 * Math.abs(to - from)) / span,
-    onUpdate: (value) => store.set({ [key]: value }),
+  tweens.kelvin = tween(from, to, {
+    duration: 180 + (440 * Math.abs(to - from)) / (KELVIN_MAX - KELVIN_MIN),
+    onUpdate: (value) => store.set({ kelvin: value }),
     onDone: () => {
-      tweens[key] = null;
+      tweens.kelvin = null;
     }
   });
+}
+
+function toggleState(key) {
+  store.set({ [key]: !store.get()[key] });
+}
+
+// A preset is a white: it takes any color back out of the light on the way.
+function selectPreset(preset) {
+  store.set({ saturation: 0 });
+  glideTo(preset.kelvin);
+  showHud(`${preset.name} · ${preset.kelvin}K`);
+}
+
+function cycleEffect() {
+  const effect = EFFECTS[(EFFECTS.indexOf(store.get().effect) + 1) % EFFECTS.length];
+  store.set({ effect });
+  showHud(EFFECT_LABELS[effect]);
 }
 
 // Keep-awake: the timer holds the lock until lights-out, otherwise it follows
@@ -160,9 +150,7 @@ function syncDevice() {
 }
 
 function onTimerChange() {
-  root.classList.toggle("timer-running", timer.active && !timer.done);
   root.classList.toggle("timer-done", timer.done);
-  ring.setAttribute("stroke-dashoffset", String(RING_LENGTH * timer.progress));
   panel.syncTimer();
   if (timer.done) panel.setOpen(false);
   syncWakeLock();
@@ -174,10 +162,11 @@ const panel = createPanel({
   timer,
   actions: {
     set,
-    animateTo,
+    selectPreset,
+    cycleEffect,
+    toggle: toggleState,
     startTimer: (minutes) => timer.start(minutes),
     cancelTimer: () => timer.cancel(),
-    toggleAwake: () => store.set({ awake: !store.get().awake }),
     toggleFullscreen: device.toggleFullscreen,
     install: device.install,
     showHint,
@@ -200,14 +189,12 @@ store.subscribe((state, previous) => {
 
 // HUD, hint and idle -----------------------------------------------------------
 
-let hudTimer = 0;
-
+// The display shows the light's numbers to the eye; this status line reads
+// gesture and shortcut changes out to screen readers.
 function showHud(text) {
   const state = store.get();
   hud.textContent = text ?? `${state.kelvin}K · ${state.brightness}%`;
-  hud.classList.add("show");
-  window.clearTimeout(hudTimer);
-  hudTimer = window.setTimeout(() => hud.classList.remove("show"), HUD_MS);
+  wake();
 }
 
 let hintTimer = 0;
@@ -245,21 +232,24 @@ let dragStart = null;
 
 attachGestures(surface, {
   doubleTapEnabled: () => device.fullscreenSupported && !timer.done,
+  // A screen used as a light gets touched all the time, so a tap never opens
+  // the controls: it wakes the display and puts an open faceplate away.
   onTap() {
     if (timer.done) {
       timer.cancel();
       return;
     }
     dismissHint();
-    panel.setOpen(!panel.isOpen());
+    panel.setOpen(false);
   },
   onDoubleTap: device.toggleFullscreen,
-  onDragStart() {
-    if (timer.done) return;
+  onDragStart(axis) {
+    if (timer.done || store.get().locked) return;
     dismissHint();
     cancelTween("kelvin");
     cancelTween("brightness");
     dragStart = store.get();
+    panel.select(axis === "x" ? "kelvin" : "brightness");
   },
   onDrag(axis, dx, dy) {
     if (!dragStart) return;
@@ -284,7 +274,7 @@ surface.addEventListener(
   "wheel",
   (event) => {
     event.preventDefault();
-    if (timer.done) return;
+    if (timer.done || store.get().locked) return;
     const scale = event.deltaMode === 1 ? 16 : 1;
     const horizontal = event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY);
     const key = horizontal ? "kelvin" : "brightness";
@@ -296,6 +286,7 @@ surface.addEventListener(
     if (!steps) return;
     wheelCarry[key] -= steps * unit;
     set(key, store.get()[key] + steps * unit);
+    panel.select(key);
     showHud();
   },
   { passive: false }
@@ -325,24 +316,32 @@ window.addEventListener("keydown", (event) => {
 
   if (event.target instanceof Element && event.target.closest("input, button, a, textarea")) return;
 
+  const key = event.key.toLowerCase();
   const step = KEY_STEPS[event.key];
-  const presetIndex = Number(event.key) - 1;
+  const preset = PRESETS[Number(event.key) - 1];
 
-  if (step) {
-    const [key, small, large] = step;
-    set(key, store.get()[key] + (event.shiftKey ? large : small));
-    showHud();
-  } else if (PRESETS[presetIndex]) {
-    animateTo("kelvin", PRESETS[presetIndex].kelvin);
-    showHud(`${PRESETS[presetIndex].name} · ${PRESETS[presetIndex].kelvin}K`);
-  } else if (event.key === " ") {
+  if (key === " ") {
     panel.setOpen(!panel.isOpen());
-  } else if (event.key === "f" || event.key === "F") {
+  } else if (key === "f") {
     device.toggleFullscreen();
-  } else if (event.key === "e" || event.key === "E") {
-    const effect = EFFECTS[(EFFECTS.indexOf(store.get().effect) + 1) % EFFECTS.length];
-    store.set({ effect });
-    showHud(EFFECT_LABELS[effect]);
+  } else if (key === "l") {
+    toggleState("locked");
+    showHud(store.get().locked ? "Locked" : "Unlocked");
+  } else if (store.get().locked) {
+    // Locked: nothing below may change the light.
+    return;
+  } else if (step) {
+    const [name, small, large] = step;
+    set(name, store.get()[name] + (event.shiftKey ? large : small));
+    panel.select(name);
+    showHud();
+  } else if (preset) {
+    selectPreset(preset);
+  } else if (key === "e") {
+    cycleEffect();
+  } else if (key === "p") {
+    toggleState("standby");
+    showHud(store.get().standby ? "Light off" : "Light on");
   } else {
     return;
   }
@@ -370,7 +369,6 @@ device.onDeviceChange(syncDevice);
 
 // Boot ----------------------------------------------------------------------------
 
-root.style.setProperty("--kelvin-track", kelvinGradient());
 panel.sync(store.get());
 onTimerChange();
 syncDevice();

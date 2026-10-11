@@ -2,6 +2,8 @@ import { KELVIN_MAX, KELVIN_MIN, KELVIN_STEP } from "./color.js";
 
 export const BRIGHTNESS_MIN = 5;
 export const BRIGHTNESS_MAX = 100;
+export const TINT_MAX = 100;
+export const HUE_MAX = 359;
 export const EFFECTS = ["none", "candle", "breathe"];
 
 const STORAGE_KEY = "huectl:v2";
@@ -10,10 +12,15 @@ const FLAGS_KEY = "huectl:flags";
 const SAVE_DELAY_MS = 250;
 
 const DEFAULTS = {
-  kelvin: 4500,
+  kelvin: 5600,
   brightness: 100,
+  tint: 0,
+  hue: 0,
+  saturation: 0,
   effect: "none",
-  awake: true
+  awake: true,
+  locked: false,
+  standby: false
 };
 
 // Storage can throw (private mode, blocked site data); the app must keep working.
@@ -56,22 +63,34 @@ export function clampBrightness(value) {
   return Math.min(BRIGHTNESS_MAX, Math.max(BRIGHTNESS_MIN, Math.round(value)));
 }
 
+const clampWhole = (value, min, max, fallback) =>
+  Number.isFinite(value) ? Math.min(max, Math.max(min, Math.round(value))) : fallback;
+
 function sanitize(state) {
   return {
     kelvin: clampKelvin(Number(state.kelvin)),
     brightness: clampBrightness(Number(state.brightness)),
+    tint: clampWhole(Number(state.tint), -TINT_MAX, TINT_MAX, DEFAULTS.tint),
+    hue: clampWhole(Number(state.hue), 0, HUE_MAX, DEFAULTS.hue),
+    saturation: clampWhole(Number(state.saturation), 0, 100, DEFAULTS.saturation),
     effect: EFFECTS.includes(state.effect) ? state.effect : DEFAULTS.effect,
-    awake: typeof state.awake === "boolean" ? state.awake : DEFAULTS.awake
+    awake: typeof state.awake === "boolean" ? state.awake : DEFAULTS.awake,
+    locked: state.locked === true,
+    standby: state.standby === true
   };
 }
 
-// URL params (?k=2700&b=60&fx=candle&timer=30) override the saved state once,
-// so a bookmark or home-screen shortcut can open straight into a setting.
+const NUMBER_PARAMS = { k: "kelvin", b: "brightness", tint: "tint", h: "hue", s: "saturation" };
+
+// URL params (?k=2700&b=60&tint=-10&h=210&s=80&fx=candle&timer=30) override the
+// saved state once, so a bookmark or home-screen shortcut can open straight
+// into a setting.
 export function readLaunchParams() {
   const params = new URLSearchParams(window.location.search);
   const overrides = {};
-  if (params.has("k")) overrides.kelvin = Number(params.get("k"));
-  if (params.has("b")) overrides.brightness = Number(params.get("b"));
+  for (const [param, key] of Object.entries(NUMBER_PARAMS)) {
+    if (params.has(param)) overrides[key] = Number(params.get(param));
+  }
   if (params.has("fx")) overrides.effect = params.get("fx");
   const timer = Number(params.get("timer"));
 
@@ -85,7 +104,8 @@ export function loadState(overrides) {
   const saved = parseJson(read(STORAGE_KEY));
   const legacyKelvin = Number.parseInt(read(LEGACY_KEY), 10);
   const base = saved ?? (Number.isFinite(legacyKelvin) ? { kelvin: legacyKelvin } : {});
-  return sanitize({ ...DEFAULTS, ...base, ...overrides });
+  // Lock and standby are for the session at hand: every launch starts lit and unlocked.
+  return sanitize({ ...DEFAULTS, ...base, ...overrides, locked: false, standby: false });
 }
 
 export function createStore(initial) {

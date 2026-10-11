@@ -1,47 +1,26 @@
 :root {
-  --light: rgb(255 210 161);
-  --light-full: rgb(255 210 161);
-  --kelvin-track: linear-gradient(90deg, #ff8b27, #ffd2a1, #fff3ea, #dfe7ff, #ccdbff);
+  --light: rgb(255 237 226);
 
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --ease-spring: cubic-bezier(0.2, 0.9, 0.25, 1.06);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --safe-top: max(0.9rem, env(safe-area-inset-top));
-  --panel-top: calc(var(--safe-top) + 3.6rem);
+  --safe-bottom: max(0.75rem, env(safe-area-inset-bottom));
 
-  /* Light tone: dark ink over a bright light. */
-  --ink: #1c1814;
-  --ink-soft: rgb(28 24 20 / 0.6);
-  --line: rgb(28 24 20 / 0.12);
-  --surface: rgb(255 252 248 / 0.9);
-  --well: rgb(28 24 20 / 0.07);
-  --raised: #fff;
-  --shadow: 0 24px 60px -16px rgb(48 30 10 / 0.38), 0 2px 8px rgb(48 30 10 / 0.08);
-  --shadow-sm: 0 6px 20px -6px rgb(48 30 10 / 0.3);
-}
-
-/* Dim light: switch the controls to dark glass so they stay readable. */
-:root[data-tone="dark"] {
-  --ink: #f6f1ea;
-  --ink-soft: rgb(246 241 234 / 0.62);
-  --line: rgb(246 241 234 / 0.13);
-  --surface: rgb(22 20 18 / 0.9);
-  --well: rgb(246 241 234 / 0.08);
-  --raised: rgb(246 241 234 / 0.16);
-  --shadow: 0 24px 60px -16px rgb(0 0 0 / 0.7), 0 2px 8px rgb(0 0 0 / 0.3);
-  --shadow-sm: 0 6px 20px -6px rgb(0 0 0 / 0.6);
-}
-
-/* Tint the controls with the light itself. */
-@supports (color: color-mix(in oklab, red, blue)) {
-  :root {
-    --surface: color-mix(in oklab, var(--light-full) 24%, rgb(255 253 250 / 0.9));
-  }
-
-  :root[data-tone="dark"] {
-    --surface: color-mix(in oklab, var(--light-full) 10%, rgb(20 18 16 / 0.9));
-  }
+  /* The control unit borrows from cinema cameras: black anodized metal, a glass
+     display, white legends and one red. It never takes its color from the
+     light, so it reads the same over a candle and over daylight. */
+  --body: #18181a;
+  --body-edge: #2b2b2e;
+  --glass: #050506;
+  --ink: #ededee;
+  --ink-soft: #909094;
+  --ink-dim: #4b4b4f;
+  --line: rgb(255 255 255 / 0.09);
+  --red: #e2231a;
+  --green: #3bd16f;
+  --screw: radial-gradient(circle closest-side, #070708 28%, #4c4c50 34% 60%, #060607 66% 90%, transparent 96%);
+  /* The fine grain of blasted metal: a tile of noise, drawn once by the browser. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 *,
@@ -85,17 +64,6 @@ button {
   outline-offset: 2px;
 }
 
-.icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  flex: none;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 /* Light surface ----------------------------------------------------------- */
 
 .surface {
@@ -113,464 +81,435 @@ html.timer-done .surface {
   cursor: none;
 }
 
-/* Toggle ------------------------------------------------------------------- */
+/* Control unit ------------------------------------------------------------ */
 
-.topbar {
-  position: fixed;
-  inset: 0 0 auto;
-  z-index: 3;
-  display: flex;
-  justify-content: center;
-  padding: var(--safe-top) 1rem 0;
-  pointer-events: none;
-}
-
-.toggle {
-  pointer-events: auto;
-  position: relative;
-  width: 2.875rem;
-  height: 2.875rem;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-  transition:
-    opacity 500ms ease,
-    transform 400ms var(--ease-spring),
-    background-color 250ms ease;
-}
-
-.toggle > svg {
-  grid-area: 1 / 1;
-}
-
-.toggle:hover {
-  transform: translateY(-1px);
-}
-
-.toggle:active {
-  transform: scale(0.94);
-}
-
-html.idle .toggle,
-html.timer-done .toggle {
-  opacity: 0;
-  transform: translateY(-0.5rem) scale(0.9);
-}
-
-html.timer-done .toggle {
-  pointer-events: none;
-}
-
-.toggle .icon {
-  transition:
-    opacity 200ms ease,
-    transform 350ms var(--ease-spring);
-}
-
-.toggle .icon-close,
-.toggle[aria-expanded="true"] .icon-open {
-  opacity: 0;
-  transform: rotate(-90deg) scale(0.6);
-}
-
-.toggle[aria-expanded="true"] .icon-close {
-  opacity: 1;
-  transform: none;
-}
-
-/* Remaining sunset-timer time, drawn around the button. */
-.toggle-ring {
-  position: absolute;
-  inset: -5px;
-  width: calc(100% + 10px);
-  height: calc(100% + 10px);
-  transform: rotate(-90deg);
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 2;
-  stroke-linecap: round;
-  opacity: 0;
-  transition: opacity 300ms ease;
-}
-
-html.timer-running .toggle-ring {
-  opacity: 0.75;
-}
-
-/* Panel --------------------------------------------------------------------- */
-
+/* One piece of hardware docked at the bottom edge. Closed, only its display
+   shows; open, the faceplate with its knobs and keys comes up under it. */
 .panel {
   position: fixed;
-  top: var(--panel-top);
-  inset-inline: 0;
+  inset: auto 0 0;
   z-index: 2;
-  padding: 0 max(1rem, env(safe-area-inset-right)) 1rem max(1rem, env(safe-area-inset-left));
-  pointer-events: none;
-}
-
-.panel-inner {
-  max-width: 28rem;
-  max-height: calc(100vh - var(--panel-top) - 1rem);
-  max-height: calc(100dvh - var(--panel-top) - 1rem);
-  margin: 0 auto;
-  padding: 1.25rem;
+  width: min(100%, 30rem);
+  max-height: calc(100vh - max(0.5rem, env(safe-area-inset-top)));
+  max-height: calc(100dvh - max(0.5rem, env(safe-area-inset-top)));
+  margin-inline: auto;
   display: grid;
-  gap: 1.15rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-  border-radius: 1.75rem;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  transform-origin: var(--origin-x, 50%) var(--origin-y, -2rem);
-  transform: translateY(-0.5rem) scale(0.14, 0.05);
-  opacity: 0;
-  visibility: hidden;
+  grid-template-rows: auto 0fr;
+  overflow: hidden;
+  border: 1px solid #000;
+  border-bottom: 0;
+  border-radius: 0.85rem 0.85rem 0 0;
+  background: var(--grain), linear-gradient(var(--body-edge), var(--body) 2.75rem);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    0 -8px 24px -12px rgb(0 0 0 / 0.5);
+  /* A control surface: two quick taps are two key presses, not a zoom, and no
+     text on it can be selected. */
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
   transition:
-    transform 340ms cubic-bezier(0.5, 0, 0.75, 0),
-    opacity 240ms ease 80ms,
-    visibility 0s linear 340ms;
+    grid-template-rows 420ms var(--ease-out),
+    transform 450ms var(--ease-out);
 }
 
-.panel.open .panel-inner {
-  pointer-events: auto;
-  transform: none;
-  opacity: 1;
-  visibility: visible;
-  transition:
-    transform 560ms var(--ease-spring),
-    opacity 200ms ease,
-    visibility 0s;
+.panel.open {
+  grid-template-rows: auto 1fr;
 }
 
-.label {
-  padding: 0;
-  font-size: 0.7rem;
+/* Hidden means off the screen, so a stray touch can't open what isn't there. */
+html.idle .panel,
+html.timer-done .panel {
+  transform: translateY(100%);
+}
+
+/* Display ------------------------------------------------------------------- */
+
+/* The whole display is the handle: tapping it opens and closes the faceplate. */
+.display {
+  display: grid;
+  padding: 0.5rem 0.5rem 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The ring goes inside, where it shows against the unit whatever the light is. */
+.display:focus-visible {
+  outline-offset: -3px;
+}
+
+.glass {
+  display: grid;
+  border-radius: 0.3rem;
+  /* A band of glare across one corner, as glass has. */
+  background: linear-gradient(118deg, rgb(255 255 255 / 0.05) 0 19%, transparent 19.4%), var(--glass);
+  box-shadow:
+    inset 0 0 0 1px #000,
+    inset 0 2px 6px rgb(0 0 0 / 0.9),
+    0 1px 0 rgb(255 255 255 / 0.1);
+}
+
+.cells,
+.knobs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.cell {
+  display: grid;
+  justify-items: center;
+  gap: 0.05rem;
+  padding: 0.38rem 0 0.32rem;
+  border-left: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.cell:first-child {
+  border-left: 0;
+}
+
+.cell small {
+  font-size: 0.56rem;
   font-weight: 650;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: var(--ink-soft);
 }
 
-.readout {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.readout-value {
-  font-size: clamp(2.6rem, 12vw, 3.25rem);
-  font-weight: 650;
-  line-height: 0.95;
-  letter-spacing: -0.035em;
+.cell b {
+  font-size: 1.05rem;
+  font-weight: 550;
   font-variant-numeric: tabular-nums;
 }
 
-.readout-value small {
-  margin-left: 0.08em;
-  font-size: 0.45em;
-  font-weight: 600;
+.cell i {
+  margin-left: 0.06em;
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 650;
+  color: var(--ink-soft);
+}
+
+/* The parameter in hand is underlined in red, as on a camera's status row. */
+.cell.selected {
+  box-shadow: inset 0 -2px 0 var(--red);
+}
+
+.flags {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.26rem 0.55rem 0.3rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink-dim);
+}
+
+.name {
+  margin-right: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+
+.flag.on {
+  color: var(--green);
+}
+
+.flag.alert.on {
+  color: var(--red);
+}
+
+.timecode {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.timecode.on {
+  color: var(--ink);
+}
+
+/* The strip under the glass. Closed, it is the unit's bottom edge, so it keeps
+   clear of the home indicator; open, the faceplate does that instead. */
+.chin {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 1.05rem max(0.38rem, env(safe-area-inset-bottom));
+  background:
+    var(--screw) 0.15rem 0.5rem / 0.55rem 0.55rem no-repeat,
+    var(--screw) calc(100% - 0.15rem) 0.5rem / 0.55rem 0.55rem no-repeat;
+  font-size: 0.56rem;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  color: var(--ink-soft);
+}
+
+.chin b {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+.chin::after {
+  content: "MENU \25B4";
+  margin-left: auto;
+  color: var(--ink);
+}
+
+.display[aria-expanded="true"] .chin {
+  padding-bottom: 0.38rem;
+}
+
+.display[aria-expanded="true"] .chin::after {
+  content: "CLOSE \25BE";
+}
+
+/* Faceplate ------------------------------------------------------------------ */
+
+.faceplate {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.faceplate::-webkit-scrollbar {
+  display: none;
+}
+
+.faceplate-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.8rem;
+  padding: 0.5rem 0.5rem var(--safe-bottom);
+}
+
+/* Knobs ---------------------------------------------------------------------- */
+
+.knob {
+  --size: clamp(2.4rem, 13.5vw, 4rem);
+  position: relative;
+  display: grid;
+  justify-items: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+/* A native slider sits under every knob, unseen: it is what the keyboard and
+   screen readers operate. */
+.knob input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The scale printed on the panel around the knob: eleven marks over 270 degrees. */
+.knob::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: calc(var(--size) + 1.1rem);
+  aspect-ratio: 1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M21.0 79.0L15.7 84.3M8.2 63.6L3.9 65.0M6.5 43.1L2.1 42.4M14.4 24.1L10.8 21.5M30.0 10.8L28.0 6.8M50.0 6.0L50.0 1.5M70.0 10.8L72.0 6.8M85.6 24.1L89.2 21.5M93.5 43.1L97.9 42.4M91.8 63.6L96.1 65.0M79.0 79.0L84.3 84.3' stroke='%23fff' stroke-opacity='.5' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  pointer-events: none;
+}
+
+/* The knurled cap. It turns with the value; the light on it stays put. */
+.knob-cap {
+  position: relative;
+  width: var(--size);
+  aspect-ratio: 1;
+  margin: 0.55rem 0.4rem 0.3rem;
+  border-radius: 50%;
+  background: repeating-conic-gradient(#3d3d41 0 3deg, #0f0f10 3deg 6deg);
+  box-shadow:
+    0 0 0 1px #000,
+    0 0.4rem 0.6rem -0.15rem rgb(0 0 0 / 0.9);
+  transform: rotate(var(--turn, 0deg));
+}
+
+.knob:active {
+  cursor: grabbing;
+}
+
+/* The sheen of spun metal, lying over the cap without turning with it. */
+.knob::after {
+  content: "";
+  position: absolute;
+  top: 0.55rem;
+  width: var(--size);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 35deg,
+    rgb(255 255 255 / 0.13),
+    transparent 22%,
+    rgb(255 255 255 / 0.05) 50%,
+    transparent 72%,
+    rgb(255 255 255 / 0.13)
+  );
+  pointer-events: none;
+}
+
+/* Its machined top face, and the index line that shows where it points. */
+.knob-cap::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #303034, #1b1b1d 60%, #0d0d0e);
+  box-shadow: 0 0 0 1px #000;
+}
+
+.knob-cap::after {
+  content: "";
+  position: absolute;
+  top: 5%;
+  left: calc(50% - 0.08rem);
+  width: 0.16rem;
+  height: 36%;
+  border-radius: 1px;
+  background: var(--ink);
+}
+
+.knob:focus-within .knob-cap::after {
+  background: var(--red);
+}
+
+.knob:has(input:focus-visible) .knob-cap {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.legend {
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+/* Keys ----------------------------------------------------------------------- */
+
+.presets,
+.keys {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.35rem;
+}
+
+.key {
+  position: relative;
+  min-width: 0;
+  height: 2.75rem;
+  padding: 0.55rem 0 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  border: 1px solid #000;
+  border-radius: 0.4rem;
+  background: linear-gradient(#343437, #1d1d1f);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.17),
+    0 2px 0 #000,
+    0 4px 6px -1px rgb(0 0 0 / 0.6);
+  font-size: 0.6rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition:
+    transform 70ms ease,
+    box-shadow 70ms ease;
+}
+
+.key[hidden] {
+  display: none;
+}
+
+/* A key travels: down two pixels, onto its own shadow. */
+.key:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1);
+}
+
+/* The lamp in the top edge of every key. */
+.key::before {
+  content: "";
+  position: absolute;
+  top: 0.32rem;
+  left: calc(50% - 0.45rem);
+  width: 0.9rem;
+  height: 0.17rem;
+  border-radius: 1px;
+  background: #060606;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07);
+}
+
+.key[aria-pressed="true"]::before {
+  background: var(--green);
+  box-shadow: 0 0 0.5rem var(--green);
+}
+
+.key-lock[aria-pressed="true"]::before {
+  background: var(--red);
+  box-shadow: 0 0 0.5rem var(--red);
+}
+
+.key-power {
+  background: linear-gradient(#f2382d, #ac130c);
+}
+
+.key-power[aria-pressed="true"]::before {
+  background: #fff;
+  box-shadow: 0 0 0.5rem #fff;
+}
+
+/* Preset keys carry a number, with the temperature they call up beneath it. */
+.key b {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.key small {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  font-weight: 500;
   letter-spacing: 0;
   color: var(--ink-soft);
 }
 
-.readout-name {
-  margin-top: 0.4rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--ink-soft);
+/* A locked control stays where it is and says so. */
+.key:disabled,
+.knob:has(input:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-.readout-side {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding-bottom: 0.15rem;
-  font-size: 1.15rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-soft);
-}
-
-.field {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.scale {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  color: var(--ink-soft);
-}
-
-/* Sliders ----------------------------------------------------------------------- */
-
-.range {
-  --track-height: 0.75rem;
-  --thumb-size: 1.625rem;
-  width: 100%;
-  height: 2.25rem;
-  margin: 0;
-  background: transparent;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-.range-kelvin {
-  --track: var(--kelvin-track);
-  --thumb: var(--light-full);
-}
-
-.range-brightness {
-  --track: linear-gradient(90deg, #000, var(--light-full));
-  --thumb: var(--light);
-}
-
-.range:focus-visible {
-  outline: none;
-}
-
-.range::-webkit-slider-runnable-track {
-  height: var(--track-height);
-  border-radius: 999px;
-  background: var(--track);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.range::-moz-range-track {
-  height: var(--track-height);
-  border-radius: 999px;
-  background: var(--track);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.range::-webkit-slider-thumb {
-  width: var(--thumb-size);
-  height: var(--thumb-size);
-  margin-top: calc((var(--track-height) - var(--thumb-size)) / 2);
-  border-radius: 50%;
-  border: 3px solid #fff;
-  background: var(--thumb);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3), 0 0 0 1px rgb(0 0 0 / 0.08);
-  transition: transform 150ms var(--ease-out);
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-.range::-moz-range-thumb {
-  width: var(--thumb-size);
-  height: var(--thumb-size);
-  border-radius: 50%;
-  border: 3px solid #fff;
-  background: var(--thumb);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3), 0 0 0 1px rgb(0 0 0 / 0.08);
-  transition: transform 150ms var(--ease-out);
-}
-
-.range:active::-webkit-slider-thumb {
-  transform: scale(1.12);
-}
-
-.range:active::-moz-range-thumb {
-  transform: scale(1.12);
-}
-
-.range:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px var(--ink), 0 2px 8px rgb(0 0 0 / 0.3);
-}
-
-.range:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 3px var(--ink), 0 2px 8px rgb(0 0 0 / 0.3);
-}
-
-/* Presets ------------------------------------------------------------------------ */
-
-.chips {
-  position: relative;
-  display: flex;
-  gap: 0.5rem;
-  margin: -0.25rem -1.25rem;
-  padding: 0.25rem 1.25rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-  scroll-padding-inline: 1.25rem;
-  mask-image: linear-gradient(90deg, transparent, #000 1.25rem, #000 calc(100% - 1.25rem), transparent);
-}
-
-.chips::-webkit-scrollbar,
-.panel-inner::-webkit-scrollbar {
-  display: none;
-}
-
-.chip {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 0.85rem 0.5rem 0.6rem;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--well);
-  font-size: 0.85rem;
-  font-weight: 550;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background-color 200ms ease,
-    color 200ms ease,
-    transform 150ms var(--ease-out);
-}
-
-.chip:active {
-  transform: scale(0.96);
-}
-
-.chip-dot {
-  width: 0.9rem;
-  height: 0.9rem;
-  border-radius: 50%;
-  background: var(--chip-color);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.15);
-}
-
-.chip[aria-pressed="true"] {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--surface);
-  color: color-mix(in oklab, var(--light-full) 15%, #fff);
-}
-
-:root[data-tone="dark"] .chip[aria-pressed="true"] {
-  color: #16130f;
-}
-
-/* Segmented controls -------------------------------------------------------------- */
-
-.segmented {
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  display: grid;
-  gap: 0.45rem;
-}
-
-.segmented legend {
-  float: left;
-  margin-bottom: 0.45rem;
-}
-
-.segments {
-  clear: both;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  padding: 3px;
-  border-radius: 0.85rem;
-  background: var(--well);
-}
-
-.segments label {
-  position: relative;
-  cursor: pointer;
-}
-
-.segments input {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.segments span {
-  display: block;
-  padding: 0.5rem 0.25rem;
-  border-radius: 0.65rem;
-  text-align: center;
-  font-size: 0.85rem;
-  font-weight: 550;
-  color: var(--ink-soft);
-  transition:
-    background-color 200ms ease,
-    color 200ms ease,
-    box-shadow 200ms ease;
-}
-
-.segments input:checked + span {
-  background: var(--raised);
-  color: var(--ink);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.14);
-}
-
-.segments input:focus-visible + span {
-  outline: 2px solid var(--ink);
-  outline-offset: 1px;
-}
-
-.timer-status {
-  font-size: 0.82rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-soft);
-}
-
-/* Actions ------------------------------------------------------------------------- */
-
-.actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-  gap: 0.5rem;
-}
-
-.action {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.7rem 0.75rem;
-  border-radius: 0.95rem;
-  border: 1px solid var(--line);
-  background: transparent;
-  font-size: 0.88rem;
-  font-weight: 550;
-  cursor: pointer;
-  transition:
-    background-color 200ms ease,
-    color 200ms ease,
-    transform 150ms var(--ease-out);
-}
-
-.action[hidden] {
-  display: none;
-}
-
-.action:active {
-  transform: scale(0.97);
-}
-
-.action[aria-pressed="true"] {
-  background: var(--raised);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.14);
-}
-
-.panel-footer {
+.legends {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem 1rem;
-  padding-top: 0.15rem;
-  font-size: 0.78rem;
+  gap: 0.2rem 0.9rem;
+  min-height: 1.1rem;
+  padding-inline: 1.05rem;
+  background:
+    var(--screw) 0.15rem 50% / 0.55rem 0.55rem no-repeat,
+    var(--screw) calc(100% - 0.15rem) 50% / 0.55rem 0.55rem no-repeat;
+  font-size: 0.7rem;
   color: var(--ink-soft);
 }
 
@@ -580,7 +519,7 @@ html.timer-running .toggle-ring {
   background: none;
   color: var(--ink-soft);
   text-decoration: underline;
-  text-decoration-color: var(--line);
+  text-decoration-color: var(--ink-dim);
   text-underline-offset: 3px;
   cursor: pointer;
 }
@@ -597,48 +536,57 @@ html.timer-running .toggle-ring {
   display: none;
   margin-left: auto;
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: 0.58rem;
 }
 
-/* A mouse can't swipe the preset row sideways, so wrap it instead. */
 @media (hover: hover) and (pointer: fine) {
   .shortcuts {
     display: inline;
   }
+}
 
-  .chips {
-    flex-wrap: wrap;
-    margin: 0;
-    padding: 0;
-    overflow: visible;
-    mask-image: none;
+/* A short, wide screen has no room to stack the unit, so the keys go beside the knobs. */
+@media (orientation: landscape) and (max-height: 30rem) {
+  .panel {
+    width: min(100%, 46rem);
+  }
+
+  .faceplate-inner {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 1rem;
+  }
+
+  .knobs {
+    grid-row: span 2;
+  }
+
+  .legends {
+    grid-column: 1 / -1;
   }
 }
 
-/* Hint and HUD -------------------------------------------------------------------- */
+/* Hint and status ----------------------------------------------------------- */
 
-.hint,
-.hud {
+.hint {
   position: fixed;
+  top: 42%;
   left: 50%;
   z-index: 2;
+  width: min(20rem, calc(100% - 2rem));
+  padding: 1.15rem 1.25rem;
+  border: 1px solid #000;
+  border-radius: 0.7rem;
+  background: var(--grain), linear-gradient(var(--body-edge), var(--body) 2.75rem);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    0 8px 24px -10px rgb(0 0 0 / 0.45);
   pointer-events: none;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: var(--shadow);
   opacity: 0;
+  transform: translate(-50%, -46%) scale(0.97);
   transition:
     opacity 350ms ease,
     transform 450ms var(--ease-out);
-}
-
-.hint {
-  top: 50%;
-  width: min(20rem, calc(100% - 2rem));
-  padding: 1.25rem 1.35rem;
-  border-radius: 1.5rem;
-  transform: translate(-50%, -46%) scale(0.97);
 }
 
 .hint.show {
@@ -647,17 +595,17 @@ html.timer-running .toggle-ring {
 }
 
 .hint-title {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
 
 .hint-list {
-  margin: 0.9rem 0;
+  margin: 0.85rem 0;
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 0.6rem;
+  gap: 0.55rem;
   font-size: 0.92rem;
 }
 
@@ -673,8 +621,9 @@ html.timer-running .toggle-ring {
   display: grid;
   place-items: center;
   flex: none;
-  border-radius: 0.6rem;
-  background: var(--well);
+  border-radius: 0.35rem;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1px var(--line);
   font-size: 0.95rem;
 }
 
@@ -684,32 +633,21 @@ html.timer-running .toggle-ring {
   color: var(--ink-soft);
 }
 
+/* For screen readers only: the display shows the same numbers to the eye. */
 .hud {
-  bottom: max(1.5rem, calc(env(safe-area-inset-bottom) + 0.75rem));
-  padding: 0.55rem 1rem;
-  border-radius: 999px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
   white-space: nowrap;
-  transform: translate(-50%, 0.5rem);
-}
-
-.hud.show {
-  opacity: 1;
-  transform: translate(-50%, 0);
 }
 
 /* Only UI motion is reduced; the light itself (timer fade, effects) is the content. */
 @media (prefers-reduced-motion: reduce) {
-  .toggle,
-  .toggle .icon,
-  .panel-inner,
-  .panel.open .panel-inner,
-  .chip,
-  .action,
-  .hint,
-  .hud {
+  .panel,
+  .key,
+  .hint {
     transition-duration: 1ms !important;
   }
 }

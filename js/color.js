@@ -5,9 +5,9 @@ export const KELVIN_STEP = 50;
 export const PRESETS = [
   { name: "Candle", kelvin: 1900 },
   { name: "Incandescent", kelvin: 2700 },
-  { name: "Halogen", kelvin: 3200 },
+  { name: "Tungsten", kelvin: 3200 },
   { name: "Neutral", kelvin: 4000 },
-  { name: "Daylight", kelvin: 5500 },
+  { name: "Daylight", kelvin: 5600 },
   { name: "Overcast", kelvin: 6500 },
   { name: "Blue sky", kelvin: 9000 }
 ];
@@ -16,7 +16,7 @@ const BANDS = [
   [1900, "Ember"],
   [2300, "Candlelight"],
   [2900, "Incandescent"],
-  [3500, "Halogen"],
+  [3500, "Tungsten"],
   [4500, "Neutral white"],
   [6000, "Daylight"],
   [7500, "Overcast"],
@@ -27,6 +27,15 @@ export function describeKelvin(kelvin) {
   const preset = PRESETS.find((candidate) => candidate.kelvin === kelvin);
   return preset ? preset.name : BANDS.find(([limit]) => kelvin < limit)[1];
 }
+
+// The color wheel in twelfths, from 0 degrees.
+const HUES = ["Red", "Orange", "Yellow", "Lime", "Green", "Mint", "Cyan", "Azure", "Blue", "Violet", "Magenta", "Rose"];
+
+export const describeHue = (hue) => HUES[Math.round(hue / 30) % HUES.length];
+
+// What to call a light: its hue once it has any color, else the name of its white.
+export const describeLight = ({ kelvin, hue, saturation }) =>
+  saturation ? describeHue(hue) : describeKelvin(kelvin);
 
 const clampChannel = (value) => Math.min(255, Math.max(0, value));
 
@@ -69,32 +78,34 @@ const toSrgb = (linear) => {
   return Math.round(Math.min(1, Math.max(0, c)) * 255);
 };
 
+// How far a full turn of the tint knob pulls a white toward green or magenta.
+const TINT_DEPTH = 0.35;
+
+// A fully saturated hue (degrees) as linear-light RGB.
+function hueToLinear(hue) {
+  const channel = (offset) => {
+    const k = (offset + hue / 60) % 6;
+    return toLinear(255 * (1 - Math.max(0, Math.min(k, 4 - k, 1))));
+  };
+  return [channel(5), channel(3), channel(1)];
+}
+
+// The color of a light: the white of `kelvin`, pulled toward green (negative
+// `tint`) or magenta (positive), then toward a pure `hue` by `saturation`.
 // `level` is perceived brightness in 0..1. Scaling linear light by level^2.2
-// keeps the hue exact while making the dimmer feel even across its range.
-export function lightColor(kelvin, level) {
+// keeps the color exact while making the dimmer feel even across its range.
+export function lightColor({ kelvin, tint = 0, hue = 0, saturation = 0 }, level) {
+  const white = kelvinToRgb(kelvin).map(toLinear);
+  // A screen at full drive has no light left to add, so each direction of the
+  // tint takes its opposite away instead.
+  const cut = 1 - (TINT_DEPTH * Math.abs(tint)) / 100;
+  const tinted = tint > 0 ? [white[0], white[1] * cut, white[2]] : [white[0] * cut, white[1], white[2] * cut];
+  const pure = hueToLinear(hue);
   const gain = Math.max(0, level) ** 2.2;
-  return kelvinToRgb(kelvin).map((channel) => toSrgb(toLinear(channel) * gain));
-}
-
-export function relativeLuminance([r, g, b]) {
-  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-}
-
-// Black text beats white text on anything brighter than ~0.18 luminance.
-export function toneFor(rgb) {
-  return relativeLuminance(rgb) > 0.18 ? "light" : "dark";
+  return tinted.map((channel, i) => toSrgb((channel + ((pure[i] - channel) * saturation) / 100) * gain));
 }
 
 export const rgbCss = ([r, g, b]) => `rgb(${r} ${g} ${b})`;
 
 export const rgbHex = (rgb) =>
   `#${rgb.map((channel) => Math.round(channel).toString(16).padStart(2, "0")).join("")}`;
-
-export function kelvinGradient(stops = 16) {
-  const colors = [];
-  for (let i = 0; i < stops; i += 1) {
-    const kelvin = KELVIN_MIN + ((KELVIN_MAX - KELVIN_MIN) * i) / (stops - 1);
-    colors.push(rgbCss(kelvinToRgb(kelvin).map(Math.round)));
-  }
-  return `linear-gradient(90deg, ${colors.join(", ")})`;
-}

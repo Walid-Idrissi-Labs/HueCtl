@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en" data-tone="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HueCtl</title>
-  <meta name="description" content="Turn your screen into an adjustable light: color temperature, dimmer, candle and breathe effects, and a sunset sleep timer." />
-  <meta name="theme-color" content="#ffd2a1" />
+  <title>HueCtl · Screen softbox</title>
+  <meta name="description" content="Turn any screen into a softbox, run from a control panel of knobs and keys: color temperature, tint, hue, saturation and a dimmer." />
+  <meta name="theme-color" content="#ffede2" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -23,7 +23,6 @@
     try {
       var paint = JSON.parse(localStorage.getItem("huectl:v2")).paint;
       document.documentElement.style.setProperty("--light", paint.color);
-      document.documentElement.dataset.tone = paint.tone;
       document.querySelector('meta[name="theme-color"]').content = paint.hex;
     } catch (error) {}
   </script>
@@ -32,110 +31,93 @@
 <body>
   <div id="surface" class="surface" aria-hidden="true"></div>
 
-  <header class="topbar">
+  <!-- One control unit, docked at the bottom edge. Closed, only its display shows. -->
+  <section id="panel" class="panel" aria-label="Light controls">
     <button
       id="toggle-panel"
-      class="toggle"
+      class="display"
       type="button"
       aria-expanded="false"
-      aria-controls="panel"
+      aria-controls="controls"
       aria-label="Light controls"
       title="Controls (Space)"
     >
-      <svg class="toggle-ring" viewBox="0 0 48 48" aria-hidden="true">
-        <circle cx="24" cy="24" r="22" stroke-dasharray="138.23" stroke-dashoffset="0" />
-      </svg>
-      <svg class="icon icon-open" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 7h10M4 12h16M4 17h12" />
-        <circle cx="16" cy="7" r="2" />
-        <circle cx="14" cy="12" r="2" />
-        <circle cx="10" cy="17" r="2" />
-      </svg>
-      <svg class="icon icon-close" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M6 6l12 12M18 6L6 18" />
-      </svg>
+      <span class="glass">
+        <span class="cells">
+          <span class="cell" data-for="kelvin"><small>CCT</small><span><b id="kelvin-value">5600</b><i>K</i></span></span>
+          <span class="cell" data-for="brightness"><small>INT</small><span><b id="brightness-value">100</b><i>%</i></span></span>
+          <span class="cell" data-for="tint"><small>TINT</small><span><b id="tint-value">0</b></span></span>
+          <span class="cell" data-for="hue"><small>HUE</small><span><b id="hue-value">0</b><i>°</i></span></span>
+          <span class="cell" data-for="saturation"><small>SAT</small><span><b id="saturation-value">0</b><i>%</i></span></span>
+        </span>
+        <span class="flags">
+          <span id="light-name" class="name">Daylight</span>
+          <span id="flag-effect" class="flag">FX</span>
+          <span id="flag-awake" class="flag">AWAKE</span>
+          <span id="flag-lock" class="flag alert">LOCK</span>
+          <span id="flag-standby" class="flag alert">STBY</span>
+          <span id="timecode" class="timecode">--:--:--</span>
+        </span>
+      </span>
+      <span class="chin"><b>HUECTL</b><span>SB-1</span></span>
     </button>
-  </header>
 
-  <section id="panel" class="panel" aria-label="Light controls" inert>
-    <div class="panel-inner">
-      <div class="readout">
-        <div>
-          <p class="readout-value"><span id="kelvin-value">4500</span><small>K</small></p>
-          <p id="kelvin-name" class="readout-name">Daylight</p>
+    <div id="controls" class="faceplate" inert>
+      <div class="faceplate-inner">
+        <div class="knobs">
+          <label class="knob">
+            <input id="kelvin" type="range" min="1500" max="9000" step="50" value="5600" aria-label="Color temperature" />
+            <span class="knob-cap" aria-hidden="true"></span>
+            <span class="legend" aria-hidden="true">CCT</span>
+          </label>
+          <label class="knob">
+            <input id="brightness" type="range" min="5" max="100" step="1" value="100" aria-label="Brightness" />
+            <span class="knob-cap" aria-hidden="true"></span>
+            <span class="legend" aria-hidden="true">INT</span>
+          </label>
+          <label class="knob">
+            <input id="tint" type="range" min="-100" max="100" step="1" value="0" aria-label="Tint, green to magenta" />
+            <span class="knob-cap" aria-hidden="true"></span>
+            <span class="legend" aria-hidden="true">TINT</span>
+          </label>
+          <label class="knob">
+            <input id="hue" type="range" min="0" max="359" step="1" value="0" aria-label="Hue" />
+            <span class="knob-cap" aria-hidden="true"></span>
+            <span class="legend" aria-hidden="true">HUE</span>
+          </label>
+          <label class="knob">
+            <input id="saturation" type="range" min="0" max="100" step="1" value="0" aria-label="Saturation" />
+            <span class="knob-cap" aria-hidden="true"></span>
+            <span class="legend" aria-hidden="true">SAT</span>
+          </label>
         </div>
-        <p class="readout-side">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
-          </svg>
-          <span id="brightness-value">100%</span>
-        </p>
-      </div>
 
-      <div class="field">
-        <label for="kelvin" class="label">Temperature</label>
-        <input id="kelvin" class="range range-kelvin" type="range" min="1500" max="9000" step="50" value="4500" />
-        <div class="scale" aria-hidden="true"><span>1500K warm</span><span>cool 9000K</span></div>
-      </div>
+        <div id="presets" class="presets" role="group" aria-label="Presets"></div>
 
-      <div id="presets" class="chips" role="group" aria-label="Presets"></div>
-
-      <div class="field">
-        <label for="brightness" class="label">Brightness</label>
-        <input id="brightness" class="range range-brightness" type="range" min="5" max="100" step="1" value="100" />
-      </div>
-
-      <fieldset class="segmented">
-        <legend class="label">Effect</legend>
-        <div class="segments">
-          <label><input type="radio" name="effect" value="none" checked /><span>Steady</span></label>
-          <label><input type="radio" name="effect" value="candle" /><span>Candle</span></label>
-          <label><input type="radio" name="effect" value="breathe" /><span>Breathe</span></label>
+        <div class="keys" role="group" aria-label="Functions">
+          <button id="effect" class="key" type="button" aria-pressed="false" title="Effect (E)">FX</button>
+          <button id="timer" class="key" type="button" aria-pressed="false" title="Sunset timer">TIMER</button>
+          <button id="awake" class="key" type="button" aria-pressed="true" aria-label="Keep awake" title="Keep the screen on">AWAKE</button>
+          <button id="fullscreen" class="key" type="button" aria-pressed="false" aria-label="Fullscreen" title="Fullscreen (F or double-tap)">FULL</button>
+          <button id="lock" class="key key-lock" type="button" aria-pressed="false" aria-label="Lock the light" title="Lock the light (L)">LOCK</button>
+          <button id="power" class="key key-power" type="button" aria-pressed="true" aria-label="Light" title="Light on or off (P)">PWR</button>
         </div>
-      </fieldset>
 
-      <fieldset class="segmented">
-        <legend class="label">Sunset timer</legend>
-        <div class="segments">
-          <label><input type="radio" name="timer" value="0" checked /><span>Off</span></label>
-          <label><input type="radio" name="timer" value="15" /><span>15 min</span></label>
-          <label><input type="radio" name="timer" value="30" /><span>30 min</span></label>
-          <label><input type="radio" name="timer" value="60" /><span>60 min</span></label>
-        </div>
-        <p id="timer-status" class="timer-status" role="status" hidden></p>
-      </fieldset>
-
-      <div class="actions">
-        <button id="awake" class="action" type="button" aria-pressed="true">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" />
-            <circle cx="12" cy="12" r="2.75" />
-          </svg>
-          Keep awake
-        </button>
-        <button id="fullscreen" class="action" type="button" aria-pressed="false" title="Fullscreen (F or double-tap)">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
-          </svg>
-          Fullscreen
-        </button>
+        <footer class="legends">
+          <button id="help" class="link" type="button">How it works</button>
+          <button id="install" class="link" type="button" hidden>Install app</button>
+          <span class="shortcuts">← → CCT · ↑ ↓ INT · 1–7 · E FX · L LOCK · P PWR</span>
+        </footer>
       </div>
-
-      <footer class="panel-footer">
-        <button id="help" class="link" type="button">How it works</button>
-        <button id="install" class="link" type="button" hidden>Install app</button>
-        <span class="shortcuts">← → warmth · ↑ ↓ brightness · 1–7 presets · E effect</span>
-      </footer>
     </div>
   </section>
 
   <div id="hint" class="hint" hidden>
-    <p class="hint-title">Your screen is a light now.</p>
+    <p class="hint-title">Your screen is a softbox now.</p>
     <ul class="hint-list">
       <li><span class="hint-key" aria-hidden="true">↔</span>Swipe sideways for warmth</li>
       <li><span class="hint-key" aria-hidden="true">↕</span>Swipe up or down for brightness</li>
-      <li><span class="hint-key" aria-hidden="true">●</span>Tap for controls</li>
+      <li><span class="hint-key" aria-hidden="true">▴</span>Tap the display for knobs and keys</li>
     </ul>
     <p class="hint-tip">Turn your device brightness all the way up for the most light.</p>
   </div>

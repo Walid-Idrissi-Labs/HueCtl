@@ -1,5 +1,5 @@
 // Bump VERSION whenever the shell file list changes.
-const VERSION = "huectl-v2.0.0";
+const VERSION = "huectl-v3.0.0";
 const SHELL = [
   "./",
   "index.html",
