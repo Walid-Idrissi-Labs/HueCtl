@@ -14,7 +14,7 @@ There is nothing to build and nothing to upload. The files in the repository are
 
 ### On a first visit
 
-The page, its style sheet and nine modules: about 60 kB, 21 kB over the wire. Once the page has loaded, the service worker stores those files and the icons, and from then on the app opens without a network.
+The page, its style sheet and nine modules: about 60 kB, 22 kB over the wire. Once the page has loaded, the service worker stores those files and the icons, and from then on the app opens without a network.
 
 ### After a release
 

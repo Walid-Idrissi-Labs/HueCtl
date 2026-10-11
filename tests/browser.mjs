@@ -68,22 +68,23 @@ export async function launch() {
     { stdio: "ignore" }
   );
 
-  // Chrome writes the port it chose into its profile once it is listening.
-  const portFile = join(profile, "DevToolsActivePort");
-  for (let i = 0; i < 200 && !existsSync(portFile); i += 1) await sleep(50);
-  if (!existsSync(portFile)) {
+  const close = () => {
     child.kill();
-    throw new Error("Chrome did not start");
-  }
-  const port = readFileSync(portFile, "utf8").split("\n")[0];
-
-  return {
-    port,
-    close() {
-      child.kill();
-      rmSync(profile, { recursive: true, force: true, maxRetries: 5 });
-    }
+    rmSync(profile, { recursive: true, force: true, maxRetries: 5 });
   };
+
+  // Chrome writes the port it chose into its profile, a moment before it answers on it.
+  const portFile = join(profile, "DevToolsActivePort");
+  for (let i = 0; i < 300; i += 1) {
+    await sleep(50);
+    if (!existsSync(portFile)) continue;
+    const port = readFileSync(portFile, "utf8").split("\n")[0];
+    if (await fetch(`http://127.0.0.1:${port}/json/version`).then((response) => response.ok, () => false)) {
+      return { port, close };
+    }
+  }
+  close();
+  throw new Error("Chrome did not start");
 }
 
 export async function openPage(browser) {

@@ -94,6 +94,7 @@ html.timer-done .surface {
   max-height: calc(100dvh - max(0.5rem, env(safe-area-inset-top)));
   margin-inline: auto;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 0fr;
   overflow: hidden;
   border: 1px solid #000;
@@ -128,6 +129,7 @@ html.timer-done .panel {
 /* The whole display is the handle: tapping it opens and closes the faceplate. */
 .display {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   padding: 0.5rem 0.5rem 0;
   border: 0;
   background: none;
@@ -142,6 +144,8 @@ html.timer-done .panel {
 
 .glass {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
   border-radius: 0.3rem;
   /* A band of glare across one corner, as glass has. */
   background: linear-gradient(118deg, rgb(255 255 255 / 0.05) 0 19%, transparent 19.4%), var(--glass);
@@ -178,7 +182,7 @@ html.timer-done .panel {
 }
 
 .cell b {
-  font-size: 1.05rem;
+  font-size: clamp(0.8rem, 4.3vw, 1.05rem);
   font-weight: 550;
   font-variant-numeric: tabular-nums;
 }
@@ -199,7 +203,7 @@ html.timer-done .panel {
 .flags {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: clamp(0.3rem, 1.6vw, 0.6rem);
   padding: 0.26rem 0.55rem 0.3rem;
   border-top: 1px solid var(--line);
   font-size: 0.58rem;
@@ -210,7 +214,9 @@ html.timer-done .panel {
   color: var(--ink-dim);
 }
 
+/* On a narrow screen in a wide font the name is what gives way. */
 .name {
+  min-width: 0;
   margin-right: auto;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -425,7 +431,7 @@ html.timer-done .panel {
     inset 0 1px 0 rgb(255 255 255 / 0.17),
     0 2px 0 #000,
     0 4px 6px -1px rgb(0 0 0 / 0.6);
-  font-size: 0.6rem;
+  font-size: clamp(0.48rem, 2.5vw, 0.6rem);
   font-weight: 750;
   letter-spacing: 0.1em;
   cursor: pointer;

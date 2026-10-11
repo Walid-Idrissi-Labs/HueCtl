@@ -376,7 +376,8 @@ render(performance.now());
 wake();
 
 if (launch.timerMinutes) timer.start(launch.timerMinutes);
-if (!getFlag("hintSeen")) window.setTimeout(showHint, 400);
+// The hint is for someone looking at a bare light: not over an open unit.
+if (!getFlag("hintSeen")) window.setTimeout(() => panel.isOpen() || showHint(), 400);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

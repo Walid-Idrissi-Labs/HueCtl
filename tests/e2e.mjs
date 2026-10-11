@@ -226,19 +226,27 @@ try {
   check("a click on the light closes it", !(await isOpen()));
 
   // ------------------------------------------------------------ screens of every shape
-  for (const [width, height] of [[320, 568], [740, 360], [1024, 1366]]) {
-    await page.viewport({ width, height, scale: 1 });
-    await open("?k=5600&b=100&fx=breathe");
-    const fits = await page.eval(`(() => {
-      const unit = document.getElementById("panel").getBoundingClientRect();
-      const inside = [...document.querySelectorAll(".knob-cap, .key:not([hidden]), .cell")].every((part) => {
-        const box = part.getBoundingClientRect();
-        return box.left >= unit.left && box.right <= unit.right + 0.5;
-      });
-      const page = document.documentElement;
-      return inside && unit.left >= 0 && unit.right <= innerWidth && unit.top >= 0 && page.scrollWidth <= innerWidth && page.scrollHeight <= innerHeight;
-    })()`);
-    check(`everything fits a ${width} by ${height} screen`, fits);
+  // Each is tried twice, as it comes and in a wide font: a phone's own font can be a good
+  // deal wider than the one this was drawn in, and the fullest status line has to fit.
+  const WIDE = '*, *::before, *::after { font-family: Verdana, "DejaVu Sans", sans-serif !important; }';
+  for (const [width, height] of [[320, 568], [360, 640], [740, 360], [1024, 1366]]) {
+    for (const font of ["", WIDE]) {
+      await page.viewport({ width, height, scale: 1 });
+      await page.goto(`${server.url}?k=4200&b=100&fx=breathe&timer=15`);
+      await page.eval(`document.head.append(Object.assign(document.createElement("style"), { textContent: ${JSON.stringify(font)} }))`);
+      await page.eval(`document.getElementById("toggle-panel").click()`);
+      await sleep(700);
+      const fits = await page.eval(`(() => {
+        const unit = document.getElementById("panel").getBoundingClientRect();
+        const inside = [...document.querySelectorAll(".glass, .flags, .chin, .cell, .knob-cap, .key:not([hidden])")].every((part) => {
+          const box = part.getBoundingClientRect();
+          return box.left >= unit.left && box.right <= unit.right + 0.5;
+        });
+        const page = document.documentElement;
+        return inside && unit.left >= 0 && unit.right <= innerWidth && unit.top >= 0 && page.scrollWidth <= innerWidth && page.scrollHeight <= innerHeight;
+      })()`);
+      check(`everything fits a ${width} by ${height} screen${font ? " in a wide font" : ""}`, fits);
+    }
   }
 
   check("nothing was logged as an error", page.errors.length === 0, page.errors.join(" | "));

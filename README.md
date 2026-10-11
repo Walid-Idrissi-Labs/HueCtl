@@ -22,7 +22,7 @@ HueCtl turns the screen in front of you into a softbox. Open the page and the wh
 
 <div align="center">
 
-<img src="assets/readme/stats.svg" width="100%" alt="5 knobs, one for each setting. 13 keys, each with its own lamp. 7500K of white, from 1500K to 9000K. 360 degrees of hue, at any saturation. 0 menus opened by a stray tap. 21 kB of code in all, gzipped. 0 dependencies or build steps. 61 checks in a real browser.">
+<img src="assets/readme/stats.svg" width="100%" alt="5 knobs, one for each setting. 13 keys, each with its own lamp. 7500K of white, from 1500K to 9000K. 360 degrees of hue, at any saturation. 0 menus opened by a stray tap. 22 kB of code in all, gzipped. 0 dependencies or build steps. 61 checks in a real browser.">
 
 <br><br><br>
 
@@ -317,7 +317,7 @@ HueCtl is plain HTML, CSS and JavaScript modules, written against the browser wi
 <table>
 <tr><td><b>Dependencies</b></td><td>None</td></tr>
 <tr><td><b>Build step</b></td><td>None. The files in this repository are the files the browser runs</td></tr>
-<tr><td><b>Size</b></td><td>60 kB of code in 13 files, 21 kB gzipped</td></tr>
+<tr><td><b>Size</b></td><td>60 kB of code in 13 files, 22 kB gzipped</td></tr>
 <tr><td><b>Tests</b></td><td>10 unit tests, and 61 checks in a real Chrome worked by touch, mouse and keyboard. CI runs both on every push</td></tr>
 <tr><td><b>Offline</b></td><td>A service worker caches the app on the first visit. Every launch after that opens from the cache at once and fetches any new version in the background for the next one</td></tr>
 <tr><td><b>Effects</b></td><td>Candle is four slow sine waves that never line up, the fastest at 2.3 Hz. Breathe is one pulse every ten seconds. There are no strobes</td></tr>
