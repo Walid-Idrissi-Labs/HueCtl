@@ -22,7 +22,7 @@ HueCtl turns the screen in front of you into a softbox. Open the page and the wh
 
 <div align="center">
 
-<img src="assets/readme/stats.svg" width="100%" alt="5 knobs, one for each setting. 13 keys, each with its own lamp. 7500K of white, from 1500K to 9000K. 360 degrees of hue, at any saturation. 0 menus opened by a stray tap. 22 kB of code in all, gzipped. 0 dependencies or build steps. 61 checks in a real browser.">
+<img src="assets/readme/stats.svg" width="100%" alt="5 knobs, one for each setting. 13 keys, each with its own lamp. 7500K of white, from 1500K to 9000K. 360 degrees of hue, at any saturation. 0 menus opened by a stray tap. 24 kB of code in all, gzipped. 0 dependencies or build steps. 70 checks in a real browser.">
 
 <br><br><br>
 
@@ -95,16 +95,16 @@ A screen used as a light gets picked up, propped against things and nudged into 
 A tap on the light never brings up a menu. It closes the unit if it is open, and that is all. Only the display opens it.
 </td>
 <td width="50%" valign="top">
-<b>Knobs turn</b>
+<b>Knobs slide</b>
 <br>
-Put a finger on a knob and go round it. Go round wide of it and the same sweep of the hand is a finer adjustment, as it is with a longer lever.
+Put a finger on a knob and slide: up or to the right for more, down or to the left for less, the way knobs work in Apple's own music apps. There is no circle to trace under your fingertip. Two taps put a knob back where it started, and TINT catches at neutral on its way past.
 </td>
 </tr>
 <tr>
 <td valign="top">
-<b>Keys travel</b>
+<b>Everything clicks</b>
 <br>
-A key goes down onto its own shadow when you press it, and its lamp tells you what it did. On a phone that can vibrate there is a tick under the finger for every key, and for the steps of a knob as it turns.
+A key goes down onto its own shadow when you press it, and its lamp tells you what it did. A knob clicks every six degrees of its turn, and harder at an end stop: a low mechanical click in two movements, with a tick under the finger where a phone can vibrate.
 </td>
 <td valign="top">
 <b>LOCK means locked</b>
@@ -240,7 +240,7 @@ Turn SAT up and the same screen is a colored accent: a blue rim on a product, a 
 
 </div>
 
-Hold <kbd>Shift</kbd> with an arrow key for bigger steps. Every knob is a native slider underneath, so a keyboard and a screen reader work it like any other.
+A knob is turned by sliding on it, up or to the right for more, and two taps put it back where it started. Hold <kbd>Shift</kbd> with an arrow key for bigger steps. Every knob is a native slider underneath, so a keyboard and a screen reader work it like any other.
 
 <br><br>
 
@@ -297,7 +297,7 @@ It never asks for the camera, the microphone, your location or notifications. Ke
 <td valign="top">
 <b>Short enough to read</b>
 <br>
-The whole app is about 1,150 lines of JavaScript in nine modules in <a href="js"><code>js</code></a>, with no third-party code.
+The whole app is about 1,250 lines of JavaScript in nine modules in <a href="js"><code>js</code></a>, with no third-party code.
 </td>
 </tr>
 </table>
@@ -317,9 +317,10 @@ HueCtl is plain HTML, CSS and JavaScript modules, written against the browser wi
 <table>
 <tr><td><b>Dependencies</b></td><td>None</td></tr>
 <tr><td><b>Build step</b></td><td>None. The files in this repository are the files the browser runs</td></tr>
-<tr><td><b>Size</b></td><td>60 kB of code in 13 files, 22 kB gzipped</td></tr>
-<tr><td><b>Tests</b></td><td>10 unit tests, and 61 checks in a real Chrome worked by touch, mouse and keyboard. CI runs both on every push</td></tr>
+<tr><td><b>Size</b></td><td>66 kB of code in 13 files, 24 kB gzipped</td></tr>
+<tr><td><b>Tests</b></td><td>10 unit tests, and 70 checks in a real Chrome worked by touch, mouse and keyboard. CI runs both on every push</td></tr>
 <tr><td><b>Offline</b></td><td>A service worker caches the app on the first visit. Every launch after that opens from the cache at once and fetches any new version in the background for the next one</td></tr>
+<tr><td><b>Sound</b></td><td>The click is made in the browser the first time it is needed: a few strikes of filtered noise and decaying sine waves, in five takes so that no two clicks in a row are alike. There is no audio file</td></tr>
 <tr><td><b>Effects</b></td><td>Candle is four slow sine waves that never line up, the fastest at 2.3 Hz. Breathe is one pulse every ten seconds. There are no strobes</td></tr>
 <tr><td><b>Reduced motion</b></td><td>The unit stops animating and the candle wavers half as much. The light itself still fades and breathes, because that is the content</td></tr>
 </table>
@@ -377,7 +378,7 @@ On purpose. A screen that is being used as a light is touched all the time, and 
 <details>
 <summary><b>How do I turn a knob with a mouse, or without one?</b></summary>
 <br>
-With a mouse, press on the knob and carry the pointer round it, the same as a finger. From the keyboard, <kbd>Tab</kbd> to the knob and use the arrow keys. The arrow keys and <kbd>1</kbd> to <kbd>7</kbd> also work with nothing selected, for temperature, brightness and the presets.
+With a mouse, press on the knob and drag up or to the right for more, the same as a finger. From the keyboard, <kbd>Tab</kbd> to the knob and use the arrow keys. The arrow keys and <kbd>1</kbd> to <kbd>7</kbd> also work with nothing selected, for temperature, brightness and the presets.
 <br><br>
 </details>
 
@@ -410,9 +411,16 @@ AWAKE uses the browser's Screen Wake Lock. Its flag on the display is green whil
 </details>
 
 <details>
+<summary><b>Can I turn the clicks off?</b></summary>
+<br>
+They follow the device. The clicks are ordinary media sound, so its volume turns them down, and an iPhone's silent mode mutes them. There is no switch for them in the app.
+<br><br>
+</details>
+
+<details>
 <summary><b>There is no tick under my finger</b></summary>
 <br>
-The tick is the phone's vibration motor, and a page can only use it where the browser allows. Browsers on Android do. Browsers on the iPhone and iPad do not, so there the knobs and keys work the same in silence.
+The tick is the phone's vibration motor, and a page can only use it where the browser allows. Browsers on Android do. Browsers on the iPhone and iPad do not, so there the knobs and keys click in the ear only.
 <br><br>
 </details>
 

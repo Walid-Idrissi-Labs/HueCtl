@@ -351,6 +351,17 @@ html.timer-done .panel {
   cursor: grabbing;
 }
 
+/* A knob in hand grows a little, so it shows round the finger that hides it. */
+.knob-cap,
+.knob::after {
+  transition: scale 180ms var(--ease-out);
+}
+
+.knob.turning .knob-cap,
+.knob.turning::after {
+  scale: 1.12;
+}
+
 /* The sheen of spun metal, lying over the cap without turning with it. */
 .knob::after {
   content: "";
@@ -653,6 +664,8 @@ html.timer-done .panel {
 @media (prefers-reduced-motion: reduce) {
   .panel,
   .key,
+  .knob-cap,
+  .knob::after,
   .hint {
     transition-duration: 1ms !important;
   }

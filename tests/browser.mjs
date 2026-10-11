@@ -180,15 +180,6 @@ export async function openPage(browser) {
         }))
       );
     },
-    // A finger carried round a center, from one clock angle to another (0 is twelve o'clock).
-    turn(cx, cy, radius, from, to, steps = 18) {
-      return page.drag(
-        Array.from({ length: steps + 1 }, (_, i) => {
-          const angle = ((from + ((to - from) * i) / steps - 90) * Math.PI) / 180;
-          return { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
-        })
-      );
-    },
     async click(x, y) {
       const base = { x, y, button: "left", clickCount: 1, pointerType: "mouse" };
       await send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y, pointerType: "mouse" });

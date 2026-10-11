@@ -1,6 +1,14 @@
 import { PRESETS, describeHue, describeKelvin, describeLight } from "./color.js";
 
 const SWEEP_DEG = 270;
+// A knob clicks every six degrees of its turn.
+const DETENTS = SWEEP_DEG / 6;
+// A slide this long takes a knob from one end stop to the other.
+const TRAVEL_PX = 220;
+const TAP_SLOP_PX = 5;
+const DOUBLE_TAP_MS = 320;
+// How near its neutral a knob has to come to catch there, as a share of its range.
+const CATCH = 0.015;
 const TIMER_STEPS = [0, 15, 30, 60];
 const $ = (id) => document.getElementById(id);
 
@@ -15,15 +23,6 @@ const KNOBS = {
   saturation: [String, (value) => `${value} percent`]
 };
 
-// A short tick under the finger, where the device can give one. Browsers refuse
-// to vibrate before the first real tap, so it waits for that.
-let lastTick = 0;
-function tick() {
-  if (performance.now() - lastTick < 30 || !navigator.userActivation?.hasBeenActive) return;
-  lastTick = performance.now();
-  navigator.vibrate?.(8);
-}
-
 // Time left, the way a camera writes timecode.
 function timecode(ms) {
   const seconds = Math.ceil(ms / 1000);
@@ -32,7 +31,7 @@ function timecode(ms) {
     .join(":");
 }
 
-export function createPanel({ store, timer, actions }) {
+export function createPanel({ timer, actions }) {
   const panel = $("panel");
   const toggle = $("toggle-panel");
   const controls = $("controls");
@@ -73,48 +72,83 @@ export function createPanel({ store, timer, actions }) {
     knobs.forEach((knob) => knob.cell.classList.toggle("selected", knob.key === key));
   }
 
-  // A knob turns the way a real one does: the pointer goes round its center,
-  // and the further out it travels, the finer the adjustment.
+  // A knob is worked the way Apple's are on a touch screen: put a finger on it
+  // and slide, up or to the right for more. There is no circle to trace on a
+  // cap the finger is hiding, and once it is held the finger can wander off it.
+  // Like a swipe on the light, a slide keeps to the direction it set off in.
   knobs.forEach(({ key, input }) => {
     const knob = input.parentElement;
-    const cap = knob.querySelector(".knob-cap");
-    const span = Number(input.max) - Number(input.min);
+    const min = Number(input.min);
+    const max = Number(input.max);
+    const home = Number(input.defaultValue);
+    // A knob with a neutral worth landing on exactly catches there for a moment.
+    const catches = "catch" in input.dataset;
     let grab = null;
+    let notch = 0;
+    let lastTap = 0;
 
-    function angle(event) {
-      const box = cap.getBoundingClientRect();
-      const x = event.clientX - (box.left + box.width / 2);
-      const y = event.clientY - (box.top + box.height / 2);
-      return (Math.atan2(y, x) * 180) / Math.PI;
+    // Clicks as the knob passes a detent, and harder as it meets an end stop.
+    function feel(value, silent) {
+      const turned = (value - min) / (max - min);
+      const now = Math.round(turned * DETENTS);
+      if (now !== notch && !silent) actions.tick(turned <= 0 || turned >= 1);
+      notch = now;
     }
 
     knob.addEventListener("pointerdown", (event) => {
       event.preventDefault();
       if (input.disabled) return;
       knob.setPointerCapture(event.pointerId);
-      // The value is carried unrounded, so slow turns add up instead of stalling.
-      grab = { angle: angle(event), value: Number(input.value) };
+      const value = Number(input.value);
+      grab = { x: event.clientX, y: event.clientY, value, axis: null, caught: catches && value === home };
+      feel(grab.value, true);
       input.focus({ preventScroll: true });
     });
 
     knob.addEventListener("pointermove", (event) => {
       if (!grab) return;
-      const now = angle(event);
-      const turned = now - grab.angle - 360 * Math.round((now - grab.angle) / 360);
-      const value = grab.value + (turned / SWEEP_DEG) * span;
-      grab = { angle: now, value: Math.min(Number(input.max), Math.max(Number(input.min), value)) };
-      const before = store.get()[key];
-      actions.set(key, grab.value);
-      if (store.get()[key] !== before) tick();
+      const dx = event.clientX - grab.x;
+      const dy = event.clientY - grab.y;
+      // The first few pixels only tell a slide from a tap, and which way it is going.
+      if (!grab.axis && Math.hypot(dx, dy) < TAP_SLOP_PX) return;
+      grab.x = event.clientX;
+      grab.y = event.clientY;
+      if (!grab.axis) {
+        grab.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+        knob.classList.add("turning");
+        return;
+      }
+      const slid = grab.axis === "x" ? dx : -dy;
+
+      // The value is carried unrounded, so a slow slide adds up instead of stalling.
+      grab.value = Math.min(max, Math.max(min, grab.value + (slid / TRAVEL_PX) * (max - min)));
+      const caught = catches && Math.abs(grab.value - home) < (max - min) * CATCH;
+      if (caught && !grab.caught) actions.tick(true);
+      grab.caught = caught;
+      actions.set(key, caught ? home : grab.value);
+      feel(caught ? home : grab.value);
     });
 
-    const release = () => {
+    const release = (event) => {
+      knob.classList.remove("turning");
+      // Two taps put a knob back where it started, as they do in Apple's own apps.
+      if (grab && !grab.axis && event.type === "pointerup") {
+        if (event.timeStamp - lastTap < DOUBLE_TAP_MS) {
+          actions.set(key, home);
+          actions.tick(true);
+        }
+        lastTap = event.timeStamp;
+      }
       grab = null;
     };
     knob.addEventListener("pointerup", release);
     knob.addEventListener("pointercancel", release);
 
-    input.addEventListener("input", () => actions.set(key, Number(input.value)));
+    // From the keyboard every step is a click of its own.
+    input.addEventListener("input", () => {
+      actions.set(key, Number(input.value));
+      actions.tick();
+    });
     input.addEventListener("focus", () => select(key));
   });
 
@@ -136,7 +170,7 @@ export function createPanel({ store, timer, actions }) {
   });
   toggle.addEventListener("click", () => setOpen(!isOpen()));
   controls.addEventListener("pointerdown", (event) => {
-    if (event.target.closest(".key:enabled")) tick();
+    if (event.target.closest(".key:enabled")) actions.tick();
   });
 
   const isOpen = () => panel.classList.contains("open");

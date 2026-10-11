@@ -158,20 +158,23 @@ function onTimerChange() {
 }
 
 const panel = createPanel({
-  store,
   timer,
   actions: {
     set,
     selectPreset,
     cycleEffect,
     toggle: toggleState,
+    tick: device.tick,
     startTimer: (minutes) => timer.start(minutes),
     cancelTimer: () => timer.cancel(),
     toggleFullscreen: device.toggleFullscreen,
     install: device.install,
     showHint,
     onOpenChange(open) {
-      if (open) dismissHint();
+      if (open) {
+        dismissHint();
+        device.primeSound();
+      }
       wake();
     }
   }

@@ -92,25 +92,33 @@ try {
   check("an open unit never goes idle", !(await idle()));
 
   // ------------------------------------------------------------ knobs and keys
+  // A slide's first step only says which way it is going, so each of these travels
+  // one step further than the distance it is meant to turn the knob.
   await open("?k=5600&b=100");
   const cap = await page.box("#kelvin + .knob-cap");
-  await page.turn(cap.x, cap.y, 20, 0, 90);
+  await page.swipe(cap.x, cap.y, cap.x, cap.y - 72);
   await sleep(200);
-  check("a quarter turn of the CCT knob is a third of its range", (await value("kelvin")) === 8100, await value("kelvin"));
-  await page.turn(cap.x, cap.y, 20, 90, -180);
+  check("sliding up on the CCT knob turns it: 66 px is three tenths of its range", (await value("kelvin")) === 7850, await value("kelvin"));
+  check("the knob in hand is underlined on the display", await has('[data-for="kelvin"]', "selected"));
+  await page.swipe(cap.x, cap.y, cap.x, cap.y + 300);
   await sleep(200);
   check("a knob stops at the end of its scale", (await value("kelvin")) === 1500, await value("kelvin"));
   const pointer = await page.eval(`${q("#kelvin")}.parentElement.style.getPropertyValue("--turn")`);
   check("and its index line points there", pointer === "-135deg", pointer);
+  await page.tap(cap.x, cap.y);
+  await sleep(60);
+  await page.tap(cap.x, cap.y);
+  await sleep(200);
+  check("two taps put a knob back where it started", (await value("kelvin")) === 5600, await value("kelvin"));
 
   const sat = await page.box("#saturation + .knob-cap");
-  await page.turn(sat.x, sat.y, 20, 0, 135);
+  await page.swipe(sat.x, sat.y, sat.x + 120, sat.y);
   const hue = await page.box("#hue + .knob-cap");
-  await page.turn(hue.x, hue.y, 20, 0, 180);
+  await page.swipe(hue.x, hue.y, hue.x, hue.y - 144);
   await sleep(200);
-  check("the knob in hand is underlined on the display", (await has('[data-for="hue"]', "selected")) && !(await has('[data-for="kelvin"]', "selected")));
-  check("SAT and HUE give the light a color", (await value("saturation")) === 50 && (await value("hue")) > 200, `${await value("saturation")} ${await value("hue")}`);
-  check("the display names the color", /^(Azure|Blue)$/.test(await text("#light-name")), await text("#light-name"));
+  check("a slide to the right turns a knob as a slide up does", (await value("saturation")) === 50, await value("saturation"));
+  check("the underline follows the hand to the next knob", (await has('[data-for="hue"]', "selected")) && !(await has('[data-for="kelvin"]', "selected")));
+  check("SAT and HUE give the light a color, and the display names it", (await value("hue")) === 215 && (await text("#light-name")) === "Azure", `${await value("hue")} ${await text("#light-name")}`);
 
   await tapOn("#presets .key:nth-child(3)");
   await sleep(900);
@@ -119,11 +127,14 @@ try {
   check("its lamp is lit, and only its lamp", (await pressed("#presets .key:nth-child(3)")) && !(await pressed("#presets .key:nth-child(5)")));
 
   const tint = await page.box("#tint + .knob-cap");
-  await page.turn(tint.x, tint.y, 20, 0, -27);
+  await page.swipe(tint.x, tint.y, tint.x - 33, tint.y, 3);
   await sleep(200);
   check("the TINT knob leans the white toward green", (await text("#tint-value")) === "G20", await text("#tint-value"));
   const tinted = (await light()).match(/\d+/g).map(Number);
   check("which takes red and blue out of the light", tinted[1] === 187 && tinted[0] < 255, tinted);
+  await page.swipe(tint.x, tint.y, tint.x + 28.5, tint.y, 3);
+  await sleep(200);
+  check("and on the way back it catches at neutral", (await text("#tint-value")) === "0", await text("#tint-value"));
 
   await tapOn("#effect");
   check("the FX key starts Candle", (await text("#flag-effect")) === "candle" && (await pressed("#effect")), await text("#flag-effect"));
@@ -146,7 +157,7 @@ try {
   await tapOn("#lock");
   const before = await value("kelvin");
   check("the LOCK key shows on the display", (await has("#flag-lock", "on")) && (await pressed("#lock")));
-  await page.turn(cap.x, cap.y, 20, 0, 120);
+  await page.swipe(cap.x, cap.y, cap.x, cap.y - 80);
   await tapOn("#presets .key:nth-child(7)");
   await tapOn("#power");
   check("locked, knobs and keys change nothing", (await value("kelvin")) === before && (await light()) !== "rgb(0, 0, 0)", await value("kelvin"));
@@ -160,6 +171,44 @@ try {
   await page.key("l", "KeyL");
   await page.key("ArrowRight");
   check("L unlocks it", (await value("kelvin")) === before + 100 && !(await has("#flag-lock", "on")), await value("kelvin"));
+
+  // ------------------------------------------------------------ clicks
+  // The sound and the vibration are counted where the page asks the browser for them.
+  await page.goto(`${server.url}?k=5600&b=100`);
+  await page.eval(`(() => {
+    window.__clicks = [];
+    window.__ticks = [];
+    const start = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (...args) {
+      window.__clicks.push(this.playbackRate.value);
+      return start.apply(this, args);
+    };
+    navigator.vibrate = (pattern) => window.__ticks.push(pattern) > 0;
+    const Context = window.AudioContext;
+    window.AudioContext = class extends Context {
+      constructor() {
+        super();
+        window.__audio = this;
+      }
+    };
+  })()`);
+  await tapOn("#toggle-panel");
+  await sleep(600);
+  check("sound is ready from the tap that opens the unit", (await page.eval(`window.__audio?.state`)) === "running", await page.eval(`String(window.__audio?.state)`));
+  const dial = await page.box("#kelvin + .knob-cap");
+  await page.swipe(dial.x, dial.y, dial.x, dial.y - 80, 40);
+  await sleep(100);
+  let clicks = await page.eval(`window.__clicks`);
+  check("a knob clicks at each detent, fifteen to a third of its travel", clicks.length >= 13 && clicks.length <= 16 && clicks.every((rate) => rate > 0.9 && rate < 1.1), clicks.length);
+  check("and ticks under the finger with each click", (await page.eval(`window.__ticks.length`)) === clicks.length, await page.eval(`window.__ticks.length`));
+  await page.swipe(dial.x, dial.y, dial.x, dial.y - 100, 10);
+  await sleep(100);
+  clicks = await page.eval(`window.__clicks`);
+  check("an end stop answers with a lower, firmer click", clicks.at(-1) < 0.7 && (await page.eval(`window.__ticks.at(-1)`)) === 14, clicks.at(-1));
+  await page.swipe(dial.x, dial.y, dial.x, dial.y - 40, 8);
+  check("and pushing on against the stop is silent", (await page.eval(`window.__clicks.length`)) === clicks.length);
+  await tapOn("#lock");
+  check("a key clicks when it is pressed", (await page.eval(`window.__clicks.length`)) === clicks.length + 1);
 
   // ------------------------------------------------------------ keyboard
   await open("?k=5600&b=100");
